@@ -1,6 +1,8 @@
 import subprocess
 import tempfile
 import os
+from urllib.parse import urlencode
+
 from bs4 import BeautifulSoup
 
 def parse_tables(soup):
@@ -58,9 +60,10 @@ def curl_get(url, cookies, headers, params):
     return result.stdout
 
 def curl_post(url, cookies, headers, form_data, params):
-    cmd = ["curl", "-s", "-L", "-X", "POST", "-G", url]
-    for k, v in params.items():
-        cmd += ["--data-urlencode", f"{k}={v}"]
+    if params:
+        url = url + "?" + urlencode(params)
+
+    cmd = ["curl", "-s", "-L", "-X", "POST", url]
     for k, v in cookies.items():
         cmd += ["-b", f"{k}={v}"]
     for k, v in headers.items():
@@ -72,7 +75,10 @@ def curl_post(url, cookies, headers, form_data, params):
     return result.stdout
 
 def curl_upload(url, cookies, headers, files, params):
-    cmd = ["curl", "-s", "-L", "-X", "POST", "-G", url]
+    if params:
+        url = url + "?" + urlencode(params)
+
+    cmd = ["curl", "-s", "-L", "-X", "POST", url]
     for k, v in params.items():
         cmd += ["--data-urlencode", f"{k}={v}"]
     for k, v in cookies.items():
@@ -103,7 +109,7 @@ html = curl_get(base_url, user_cookie, {}, {})
 
 for step in range(10000):
     soup = BeautifulSoup(html, "html.parser")
-    titles = soup.find_all(["h2"])
+    titles = soup.find_all(["h1", "h2"])
     for t in titles:
         print(f"--- {t.get_text(strip=True)} ---")
 
@@ -113,7 +119,6 @@ for step in range(10000):
     print(f"Заголовки из таблицы: {headers}")
     print(f"Данные формы: {form_data}")
     print(f"Параметры запроса: {params}")
-    print()
 
     text = soup.get_text()
 
